@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#0a1626}
+body{font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#fff}
+/* .f must match target resolution exactly; renderer records at preferences.resolution */
+.f{position:absolute;inset:0;width:1920px;height:1080px;overflow:hidden;background:#0a1626}
+.bg{position:absolute;inset:0;background-size:cover;background-position:center}
+/* ambient bg motion: infinite is ignored by the renderer's duration probe -> safe */
+.ken{animation:ken 16s ease-in-out infinite alternate}
+@keyframes ken{from{transform:scale(1.02) translate(0,0)}to{transform:scale(1.12) translate(-1.2%,-1.2%)}}
+.ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,16,30,.55) 0%,rgba(6,16,30,.28) 45%,rgba(5,12,24,.88) 100%)}
+/* entrance: keep delay small + total (delay+duration) well under per-frame durationSec */
+.rise{opacity:0;animation:rise .8s cubic-bezier(.22,.61,.36,1) forwards}
+.d1{animation-delay:.15s}.d2{animation-delay:.5s}.d3{animation-delay:1.0s}.d4{animation-delay:1.5s}
+@keyframes rise{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:translateY(0)}}
+.acc{height:12px;width:150px;border-radius:6px;background:linear-gradient(90deg,#38bdf8,#22d3ee)}
+.lbl{font-size:22px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#38bdf8;display:block;margin-bottom:14px}
+h1.hd{font-size:88px;line-height:1.08;font-weight:800;letter-spacing:-.01em}
+sub{font-size:34px;font-weight:500;color:#cfe4ff;display:block}
+.cap{position:absolute;left:56px;right:56px;bottom:34px;font-size:24px;color:rgba(255,255,255,.82);text-align:center}
+.src{position:absolute;left:56px;top:40px;font-size:22px;font-weight:700;letter-spacing:.1em;color:rgba(220,240,255,.7)}
+</style></head><body>
+<!-- Paste a real base64 data URI here: data:image/webp;base64,.... -->
+<div class="f">
+  <div class="bg ken" style="background-image:url('data:image/webp;base64,'"></div>
+  <div class="ov"></div>
+  <div class="src">SOURCE / SITE · DATE</div>
+  <div style="position:absolute;left:110px;top:200px;right:110px">
+    <div class="acc"></div>
+    <div style="height:40px"></div>
+    <span class="lbl rise d1">SECTION / CATEGORY</span>
+    <h1 class="hd rise d2">Headline here<br>second line</h1>
+    <div style="height:34px"></div>
+    <sub class="rise d3">Supporting subtitle · facts</sub>
+  </div>
+  <div class="cap rise d4">Image/photo credit caption</div>
+</div>
+</body></html>

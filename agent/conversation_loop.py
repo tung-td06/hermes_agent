@@ -2537,8 +2537,43 @@ def run_conversation(
                             compression_attempts = 0
                             _retry.primary_recovery_attempted = False
                             continue
+                        # Token-exhaustion fallback: when provider-level fallback is exhausted
+                        # AND we encounter rate limit/quota errors, try switching model
+                        # Works for ANY provider (opencode-zen, bynara, or any custom provider)
+                        _current_provider = (getattr(agent, 'provider', '') or '').strip().lower()
+                        _is_token_issue = (
+                            any(_kw in _current_provider for _kw in ['opencode', 'zen', 'bynara', 'nara', 'custom'])
+                            and any(_kw in str(error_msg).lower() for _kw in
+                                    ['rate limit', 'quota', 'tokens', 'billing', 'credit', 'insufficient'])
+                        )
+                        if _is_token_issue:
+                            try:
+                                import subprocess as _subprocess
+                                _fallback_script = os.path.join(
+                                    os.getenv('HERMES_HOME', r'P:\hermes'),
+                                    'scripts', 'auto_model_fallback.py')
+                                _r = _subprocess.run(
+                                    ['python', _fallback_script, '--force'],
+                                    capture_output=True, text=True, timeout=30)
+                                if _r.returncode == 0:
+                                    agent._buffer_status("🔄 Token exhausted — switching model...")
+                                    # Reload model from config since the script changed it
+                                    try:
+                                        from hermes_cli.config import load_config_readonly
+                                        cfg = load_config_readonly()
+                                        new_model = (cfg.get('model') or {}).get('default', '')
+                                        if new_model and new_model != getattr(agent, 'model', ''):
+                                            agent.model = new_model
+                                            logger.info(f"Model switched to: {new_model}")
+                                    except Exception as _re:
+                                        logger.debug(f"Model reload failed: {_re}")
+                                    retry_count = 0
+                                    compression_attempts = 0
+                                    _retry.primary_recovery_attempted = False
+                                    continue
+                            except Exception as _fex:
+                                logger.debug(f"Model fallback error: {_fex}")
                         # Terminal — flush buffered retry trace so user sees what happened.
-                        agent._flush_status_buffer()
                         agent._emit_status(f"❌ Max retries ({max_retries}) exceeded for invalid responses. Giving up.")
                         logger.error(f"{agent.log_prefix}Invalid API response after {max_retries} retries.")
                         agent._persist_session(messages, conversation_history)
@@ -4321,6 +4356,42 @@ def run_conversation(
                             compression_attempts = 0
                             _retry.primary_recovery_attempted = False
                             continue
+                        # Zen/provider token-exhaustion fallback: when provider-level
+                        # fallback is exhausted AND we're on a provider with rate limit,
+                        # silently switch to the next free model via the script
+                        _current_provider = (getattr(agent, 'provider', '') or '').strip().lower()
+                        _is_rate_limit_error = classified.reason in {FailoverReason.rate_limit, FailoverReason.billing, FailoverReason.upstream_rate_limit}
+                        # Check if this is a known free-model provider (opencode-zen or custom providers using zen)
+                        _is_zen_like_provider = any(_kw in _current_provider for _kw in ['opencode', 'zen', 'bynara', 'nara', 'custom'])
+                        if _is_zen_like_provider and _is_rate_limit_error:
+                            try:
+                                import subprocess as _subprocess
+                                _fallback_script = os.path.join(
+                                    os.getenv('HERMES_HOME', r'P:\hermes'),
+                                    'scripts', 'auto_model_fallback.py')
+                                _r = _subprocess.run(
+                                    ['python', _fallback_script, '--force'],
+                                    capture_output=True, text=True, timeout=30)
+                                if _r.returncode == 0:
+                                    agent._buffer_status("🔄 Rate-limit — switching to next model...")
+                                    # Reload model from config since the script changed it
+                                    try:
+                                        from hermes_cli.config import load_config_readonly
+                                        cfg = load_config_readonly()
+                                        new_model = (cfg.get('model') or {}).get('default', '')
+                                        if new_model and new_model != getattr(agent, 'model', ''):
+                                            agent.model = new_model
+                                            logger.info(f"Model switched to: {new_model}")
+                                    except Exception as _re:
+                                        logger.debug(f"Model reload failed: {_re}")
+                                    retry_count = 0
+                                    compression_attempts = 0
+                                    _retry.primary_recovery_attempted = False
+                                    continue
+                                else:
+                                    logger.debug(f"Model fallback failed: {_r.stderr}")
+                            except Exception as _fex:
+                                logger.debug(f"Model fallback error: {_fex}")
 
                 # ── Auth-failure provider failover ───────────────────────
                 # A 401/403 that survives the per-provider credential-refresh
