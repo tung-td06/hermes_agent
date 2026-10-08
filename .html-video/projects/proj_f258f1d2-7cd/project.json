@@ -1,0 +1,15 @@
+{
+  "id": "proj_f258f1d2-7cd",
+  "name": "test",
+  "intent": "portrait video",
+  "assets": [],
+  "templateId": null,
+  "variables": {},
+  "preferences": {
+    "aspect": "9:16",
+    "commercial": false
+  },
+  "status": "draft",
+  "createdAt": "2026-09-07T03:24:59.402Z",
+  "updatedAt": "2026-09-07T03:24:59.404Z"
+}
